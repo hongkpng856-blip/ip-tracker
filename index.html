@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IP 追蹤器 | Visitor IP Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .ip-card {
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        .ip-display {
+            text-align: center;
+            padding: 40px 20px;
+        }
+        .ip-label {
+            font-size: 1.2em;
+            color: #aaa;
+            margin-bottom: 10px;
+        }
+        .ip-address {
+            font-size: 3em;
+            font-weight: bold;
+            color: #00d4ff;
+            text-shadow: 0 0 20px rgba(0,212,255,0.5);
+            font-family: 'Courier New', monospace;
+        }
+        .ip-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 30px;
+        }
+        .info-item {
+            background: rgba(0,0,0,0.2);
+            padding: 15px;
+            border-radius: 10px;
+        }
+        .info-label {
+            color: #888;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+        .info-value {
+            color: #fff;
+            font-size: 1.1em;
+            font-weight: 500;
+        }
+        .stats-section {
+            margin-top: 30px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+        }
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        .history-section {
+            margin-top: 30px;
+        }
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .history-table th, .history-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .history-table th {
+            background: rgba(0,0,0,0.3);
+            font-weight: 600;
+        }
+        .history-table tr:hover {
+            background: rgba(255,255,255,0.05);
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.1);
+            border-left-color: #00d4ff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .export-btn {
+            background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+            border: none;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            margin: 10px 5px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .export-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0,212,255,0.4);
+        }
+        .clear-btn {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
+        }
+        .clear-btn:hover {
+            box-shadow: 0 5px 20px rgba(255,107,107,0.4);
+        }
+        .timestamp {
+            color: #888;
+            font-size: 0.85em;
+        }
+        .badge {
+            display: inline-block;
+            background: #00d4ff;
+            color: #000;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.75em;
+            margin-left: 5px;
+        }
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            color: #666;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌐 IP 追蹤器</h1>
+        
+        <div class="ip-card">
+            <div class="ip-display">
+                <div class="ip-label">您的 IP 地址</div>
+                <div class="ip-address" id="currentIP">
+                    <div class="spinner"></div>
+                    <div>載入中...</div>
+                </div>
+            </div>
+            <div class="ip-info" id="ipInfo">
+                <!-- IP 詳細資訊將在這裡顯示 -->
+            </div>
+        </div>
+        
+        <div class="ip-card stats-section">
+            <h2>📊 統計數據</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalVisits">0</div>
+                    <div class="stat-label">總訪問次數</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="uniqueIPs">0</div>
+                    <div class="stat-label">獨立 IP 數</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="todayVisits">0</div>
+                    <div class="stat-label">今日訪問</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="countries">0</div>
+                    <div class="stat-label">國家/地區</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="ip-card history-section">
+            <h2>📝 訪問記錄</h2>
+            <div style="margin-top: 15px;">
+                <button class="export-btn" onclick="exportData()">📥 匯出 JSON</button>
+                <button class="export-btn clear-btn" onclick="clearHistory()">🗑️ 清除記錄</button>
+            </div>
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>時間</th>
+                        <th>IP 地址</th>
+                        <th>國家/地區</th>
+                        <th>城市</th>
+                        <th>ISP</th>
+                    </tr>
+                </thead>
+                <tbody id="historyBody">
+                    <!-- 記錄將在這裡顯示 -->
+                </tbody>
+            </table>
+        </div>
+        
+        <footer>
+            <p>IP 追蹤器 v2.0 | 使用 ipapi.co API | 資料儲存於瀏覽器 localStorage</p>
+        </footer>
+    </div>
+
+    <script>
+        // 訪問記錄存儲
+        let visitRecords = JSON.parse(localStorage.getItem('ipVisitRecords') || '[]');
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCurrentIP();
+            updateStats();
+            renderHistory();
+        });
+        
+        // 獲取當前 IP 和詳細資訊
+        async function loadCurrentIP() {
+            const ipDisplay = document.getElementById('currentIP');
+            const ipInfoDiv = document.getElementById('ipInfo');
+            
+            try {
+                // 使用 ipapi.co API (免費，每月 1000 次請求)
+                const response = await fetch('https://ipapi.co/json/');
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.reason || 'API Error');
+                }
+                
+                // 顯示 IP
+                ipDisplay.innerHTML = `<span>${data.ip}</span>`;
+                
+                // 顯示詳細資訊
+                ipInfoDiv.innerHTML = `
+                    <div class="info-item">
+                        <div class="info-label">國家/地區</div>
+                        <div class="info-value">${data.country_name} ${data.country ? `(${data.country})` : ''}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">城市</div>
+                        <div class="info-value">${data.city || '未知'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">地區</div>
+                        <div class="info-value">${data.region || '未知'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">ISP</div>
+                        <div class="info-value">${data.org || '未知'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">時區</div>
+                        <div class="info-value">${data.timezone || '未知'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">經緯度</div>
+                        <div class="info-value">${data.latitude}, ${data.longitude}</div>
+                    </div>
+                `;
+                
+                // 記錄訪問
+                recordVisit(data);
+                
+            } catch (error) {
+                console.error('Error fetching IP:', error);
+                ipDisplay.innerHTML = '<span style="color: #ff6b6b;">無法獲取 IP</span>';
+                ipInfoDiv.innerHTML = `<div class="info-item"><div class="info-label">錯誤</div><div class="info-value">${error.message}</div></div>`;
+                
+                // 嘗試備用 API
+                tryBackupAPI();
+            }
+        }
+        
+        // 備用 API
+        async function tryBackupAPI() {
+            try {
+                const response = await fetch('https://api.ipify.org?format=json');
+                const data = await response.json();
+                document.getElementById('currentIP').innerHTML = `<span>${data.ip}</span>`;
+                
+                // 嘗試獲取更多資訊
+                const infoResponse = await fetch(`https://ipapi.co/${data.ip}/json/`);
+                const infoData = await infoResponse.json();
+                
+                if (!infoData.error) {
+                    recordVisit(infoData);
+                } else {
+                    recordVisit({ ip: data.ip, country_name: '未知', city: '未知', org: '未知' });
+                }
+            } catch (e) {
+                console.error('Backup API failed:', e);
+            }
+        }
+        
+        // 記錄訪問
+        function recordVisit(data) {
+            const record = {
+                timestamp: new Date().toISOString(),
+                ip: data.ip,
+                country: data.country_name || '未知',
+                city: data.city || '未知',
+                region: data.region || '',
+                isp: data.org || '未知',
+                timezone: data.timezone || '',
+                latitude: data.latitude,
+                longitude: data.longitude
+            };
+            
+            // 添加到記錄
+            visitRecords.unshift(record);
+            
+            // 限制記錄數量 (最多 500 筆)
+            if (visitRecords.length > 500) {
+                visitRecords = visitRecords.slice(0, 500);
+            }
+            
+            // 儲存到 localStorage
+            localStorage.setItem('ipVisitRecords', JSON.stringify(visitRecords));
+            
+            // 更新顯示
+            updateStats();
+            renderHistory();
+        }
+        
+        // 更新統計
+        function updateStats() {
+            const total = visitRecords.length;
+            const uniqueIPs = new Set(visitRecords.map(r => r.ip)).size;
+            const today = new Date().toDateString();
+            const todayVisits = visitRecords.filter(r => 
+                new Date(r.timestamp).toDateString() === today
+            ).length;
+            const countries = new Set(visitRecords.map(r => r.country)).size;
+            
+            document.getElementById('totalVisits').textContent = total;
+            document.getElementById('uniqueIPs').textContent = uniqueIPs;
+            document.getElementById('todayVisits').textContent = todayVisits;
+            document.getElementById('countries').textContent = countries;
+        }
+        
+        // 渲染歷史記錄
+        function renderHistory() {
+            const tbody = document.getElementById('historyBody');
+            const recentRecords = visitRecords.slice(0, 50); // 顯示最近 50 筆
+            
+            tbody.innerHTML = recentRecords.map(record => {
+                const date = new Date(record.timestamp);
+                const formattedDate = date.toLocaleString('zh-TW', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+                
+                return `
+                    <tr>
+                        <td class="timestamp">${formattedDate}</td>
+                        <td><strong>${record.ip}</strong></td>
+                        <td>${record.country}</td>
+                        <td>${record.city}</td>
+                        <td>${record.isp}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        // 匯出資料
+        function exportData() {
+            const dataStr = JSON.stringify(visitRecords, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ip-records-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        
+        // 清除記錄
+        function clearHistory() {
+            if (confirm('確定要清除所有訪問記錄嗎？此操作無法復原。')) {
+                visitRecords = [];
+                localStorage.removeItem('ipVisitRecords');
+                updateStats();
+                renderHistory();
+            }
+        }
+    </script>
+</body>
+</html>
